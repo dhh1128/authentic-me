@@ -1,0 +1,174 @@
+---
+layout: default
+title: Convert SSH public key to CESR or back
+---
+
+<script src="https://cdn.jsdelivr.net/npm/hash-wasm@4.11.0/dist/index.umd.min.js"></script>
+<script>
+  function el(id) {
+    return document.getElementById(id);
+  }
+  
+  function hexHash(bytes) {
+    return Array.from(new Uint8Array(bytes)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  
+  const textAreas = ['ssh', 'cesr'];//, 'peer', 'key'];
+
+  const toRawFuncs = {
+    ssh: SSHToRawBytes,
+    cesr: CESRToRawBytes,
+//    peer: DIDPeerToRawBytes,
+//    key: DIDKeyToRawBytes
+  };
+
+  const fromRawFuncs = {
+    ssh: rawBytesToSSH,
+    cesr: rawBytesToCESR,
+//    peer: rawBytesToDidPeer,
+//    key: rawBytesToDidKey
+  };
+
+  function reset(except) {
+    textAreas.forEach((id) => {
+      if (i != except) {
+        el(id).value = '';
+      }
+    });
+  }
+
+  function cvt(src) {
+    const val = el(src).value;
+    reset(src);
+    let rawBytes = null;
+    textAreas.forEach((id) => {
+      if (id == src) {
+        rawBytes = toRawFuncs(id)(val);
+      }
+    });
+    textAreas.forEach((id) => {
+      if (id != src) {
+        el(id).value = fromRawFuncs(id)(rawBytes);
+      }
+    });
+  }
+
+function SSHToRawBytes(sshEd25519PubKey) {
+  const sshPublicKeyRegex = /\s*(ssh-[a-z0-9]+[ \t]+)?(AAAA[-_=+\/a-zA-Z0-9]+)([ \t]+[a-zA-Z0-9]+[^\s]+)?/gm;
+  const match = sshPublicKeyRegex.exec(sshEd25519PubKey);
+  if (!match || (match[1] && match[1] !== "ssh-ed25519")) {
+      throw new Error("Invalid SSH public key format. Only Ed25519 keys are supported.");
+  }
+  const base64Key = match[2];
+  const rawKeyBuffer = Uint8Array.from(atob(base64Key), c => c.charCodeAt(0));
+  function readUint32BE(buffer, offset) {
+      return (buffer[offset] << 24) | (buffer[offset + 1] << 16) | 
+            (buffer[offset + 2] << 8) | buffer[offset + 3];
+  }
+  let offset = 0;
+  const algLength = readUint32BE(rawKeyBuffer, offset);
+  offset += 4;
+  const algorithm = String.fromCharCode(...rawKeyBuffer.slice(offset, offset + algLength));
+  offset += algLength;
+  if (algorithm !== "ssh-ed25519") {
+      throw new Error("Not an Ed25519 key.");
+  }
+  const pubKeyLength = readUint32BE(rawKeyBuffer, offset);
+  offset += 4;
+  if (pubKeyLength !== 32) {
+      throw new Error("Invalid Ed25519 public key length. Expected 32 bytes.");
+  }
+  const rawPublicKey = rawKeyBuffer.slice(offset, offset + pubKeyLength);
+  return rawPublicKey;
+}
+
+function CESRToRawBytes(cesr) {
+  const base64Url = cesr.slice(1).replace(/-/g, '+').replace(/_/g, '/');
+  const base64String = atob(base64Url.padEnd(base64Url.length + (4 - base64Url.length % 4) % 4, '='));
+  return Uint8Array.from(base64String, c => c.charCodeAt(0));
+}
+
+function rawBytesToSSH(rawBytes) {
+  const base64Key = btoa(String.fromCharCode(...rawBytes));
+  return `ssh-ed25519 ${base64Key}`;
+}
+
+function rawBytesToCESR(rawBytes) {
+    const base64String = btoa(rawBytes);
+    const base64Url = base64String.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    return 'B' + base64Url;
+  }
+
+function base58Encode(bytes) {
+  const alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  const base = BigInt(58);
+  const leadingZeros = bytes.findIndex(byte => byte !== 0);
+  const num = BigInt('0x' + bytes.map(byte => byte.toString(16).padStart(2, '0')).join(''));
+  let encoded = '';
+  while (num > 0n) {
+    const remainder = num % base;
+    num /= base;
+    encoded = alphabet[Number(remainder)] + encoded;
+  }
+  return '1'.repeat(leadingZeros) + encoded;
+}
+
+function rawBytesToDidKey(rawBytes) {
+  return 'did:key:z6Mk' + base58Encode(rawBytes);
+}
+
+function rawBytesToDidPeer(rawBytes) {
+  return 'did:peer:0z6Mk' + base58Encode(rawBytes);
+}
+
+</script>
+
+<label class="copier" for="ssh">SSH public key</label>
+<textarea id="ssh" rows="10" cols="80" placeholder="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBBRKQiLjwbnYVLUVzpSzt3Okfp7TppizAyq6Qk5HRlx example@host" maxlength="120" oninput="reset('ssh')"></textarea>
+<button onclick="cvt('ssh')">&darr; to CESR, did:key, did:peer</button>
+
+<label class="copier" for="cesr">CESR</label>
+<textarea id="cesr" rows="10" cols="80" placeholder="BC3NzaC1lZDI1NTE5AAAAIBBRKQiLSzt3Okfp7Tpk5HR" maxlength="120" oninput="reset('cesr')"></textarea>
+<button onclick="cvt('cesr')">&darr; to SSH public key, did:peer, did:key</button>
+
+<label class="copier" for="did:peer">did:peer</label>
+<textarea id="peer" rows="10" cols="80" placeholder="C3NzaC1lZDI1NTE5AAAAIBBRKQiLjwbnYVLUVzpSzt3Okfp7TppizAyq6Qk5HRlx" maxlength="120" oninput="reset('peer')"></textarea>
+<button onclick="cvt('peer')">&darr; to SSH public key, CESR, did:key</button>
+
+<label class="copier" for="did:key">did:key</label>
+<textarea id="key" rows="10" cols="80" placeholder="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBBRKQiLjwbnYVLUVzpSzt3Okfp7TppizAyq6Qk5HRlx example@host" maxlength="120" oninput="reset('key')"></textarea>
+<button onclick="cvt('key')">&darr; to SSH public key, CESR, did:peer</button>
+
+<script>
+  function copyValue() {
+    // Did this occur where the copy icon is?
+    const rect = this.getBoundingClientRect();
+    const clickX = event.clientX - rect.left;
+    const isRightmost16Pixels = clickX >= rect.width - 20;
+    if (!isRightmost16Pixels) {
+      return;
+    }
+    // Copy the value of the element with the ID specified in the "for" attribute
+    const forAttr = this.getAttribute('for');
+    const target = el(forAttr);
+    const value = target.value;
+    navigator.clipboard.writeText(value).then(() => {
+        console.log('Value copied to clipboard:', value);
+        // Add the animation class to the textarea
+        target.classList.add('copied');
+        // Remove the animation class after the animation ends (0.5s in this case)
+        setTimeout(function() {
+          target.classList.remove('copied');
+        }, 500);
+      })
+      .catch((error) => {
+        console.error('Failed to copy value to clipboard:', error);
+      });
+  }
+  // Find each label in the DOM that has a "for" attribute
+  const labels = document.querySelectorAll('label[for]');  
+  // Add event listener to each label
+  labels.forEach(label => {
+    label.addEventListener('click', copyValue);
+  });
+</script>
