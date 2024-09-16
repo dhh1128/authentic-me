@@ -31,7 +31,7 @@ title: Convert SSH public key to CESR or back
 
   function reset(except) {
     textAreas.forEach((id) => {
-      if (i != except) {
+      if (id != except) {
         el(id).value = '';
       }
     });
@@ -126,19 +126,19 @@ function rawBytesToDidPeer(rawBytes) {
 
 <label class="copier" for="ssh">SSH public key</label>
 <textarea id="ssh" rows="2" cols="80" placeholder="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBBRKQiLjwbnYVLUVzpSzt3Okfp7TppizAyq6Qk5HRlx example@host" maxlength="120" oninput="reset('ssh')"></textarea>
-<button onclick="cvt('ssh')">to CESR, did:key, did:peer</button><br>
+<button onclick="cvt('ssh')">to CESR, did:key, did:peer</button><br><br>
 
 <label class="copier" for="cesr">CESR</label>
 <textarea id="cesr" rows="1" cols="80" placeholder="BC3NzaC1lZDI1NTE5AAAAIBBRKQiLSzt3Okfp7Tpk5HR" maxlength="80" oninput="reset('cesr')"></textarea>
-<button onclick="cvt('cesr')">to SSH public key, did:peer, did:key</button><br>
+<button onclick="cvt('cesr')">to SSH public key, did:peer, did:key</button><br><br>
 
 <label class="copier" for="did:peer">did:peer</label>
 <textarea id="peer" rows="1" cols="80" placeholder="C3NzaC1lZDI1NTE5AAAAIBBRKQiLjwbnYVLUVzpSzt3Okfp7TppizAyq6Qk5HRlx" maxlength="80" oninput="reset('peer')"></textarea>
-<button onclick="cvt('peer')">to SSH public key, CESR, did:key</button><br>
+<button onclick="cvt('peer')">to SSH public key, CESR, did:key</button><br><br>
 
 <label class="copier" for="did:key">did:key</label>
 <textarea id="key" rows="1" cols="80" placeholder="did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK" maxlength="80" oninput="reset('key')"></textarea>
-<button onclick="cvt('key')">to SSH public key, CESR, did:peer</button><br>
+<button onclick="cvt('key')">to SSH public key, CESR, did:peer</button><br><br>
 
 <script>
   function copyValue() {
