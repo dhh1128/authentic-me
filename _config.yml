@@ -1,0 +1,14 @@
+title: Trust
+description: decide whether to trust something as authentically from Daniel 
+author:
+  name: "Daniel Hardman"
+  twitter: "dhh1128"
+  email: "daniel.hardman@gmail.com"
+plugins:
+  - jekyll-remote-theme
+  - jekyll-sitemap
+remote_theme: pages-themes/minimal@v0.2.0
+show_downloads: false
+include:
+  - robots.txt
+  - LICENSE
