@@ -43,12 +43,12 @@ title: Convert SSH public key to CESR or back
     let rawBytes = null;
     textAreas.forEach((id) => {
       if (id == src) {
-        rawBytes = toRawFuncs(id)(val);
+        rawBytes = toRawFuncs[id](val);
       }
     });
     textAreas.forEach((id) => {
       if (id != src) {
-        el(id).value = fromRawFuncs(id)(rawBytes);
+        el(id).value = fromRawFuncs[id](rawBytes);
       }
     });
   }
