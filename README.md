@@ -11,6 +11,5 @@ This site is my source of truth to explain how I, Daniel Hardman, prove myself i
 * [Guardianship](guardianship.md)
 * [Exceptions](exceptions.md)
 
-
-
-
+## Tools
+* [Convert Ed25519 keys](tools/cvtkey.html)

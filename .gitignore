@@ -2,6 +2,12 @@ pytest.ini
 *.log
 .venv
 
+# ignore local runs of jekyll
+_site
+.jekyll-cache
+Gemfile
+Gemfile.lock
+
 .DS_Store
 .idea/
 

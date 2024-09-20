@@ -1,0 +1,42 @@
+How to debug
+----
+install build-essential
+
+sudo apt update
+sudo apt install build-essential
+
+install rbenv
+
+git clone https://github.com/rbenv/rbenv.git ~/.rbenv
+echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc
+echo 'eval "$(rbenv init -)"' >> ~/.bashrc
+source ~/.bashrc
+
+install ruby-build
+
+git clone https://github.com/rbenv/ruby-build.git ~/.rbenv/plugins/ruby-build
+
+install a specific version of ruby
+
+rbenv install 3.0.0
+rbenv global 3.0.0
+
+install jekyll and bundler
+
+gem install jekyll bundler
+
+make Gemfile in project root
+
+    gem 'jekyll', '~> 4.2.0'
+    gem 'jekyll-remote-theme','~> 0.4.3' 
+    gem 'jekyll-sitemap','~> 1.4.0'
+    gem 'jekyll-seo-tag','~> 2.7.1'
+    gem 'webrick'
+
+run a jekyll build (may have to install some gem dependencies)
+
+bundle exec jekyll build
+
+serve the site locally
+
+bundle exec jekyll serve

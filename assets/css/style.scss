@@ -50,4 +50,62 @@ a:hover {
     border-bottom: double #765043;
 }
 a:visited { color: #765043 }
-
+label, textarea, input[type="text"] {
+    width: 100%;
+    display: block;
+}
+textarea {
+    background-color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    padding: 0.2em 0.4em;
+    font-size: inherit;
+}
+textarea:read-only, input[type="text"]:read-only {
+    background-color: #fbf6f3;
+}
+label {
+  padding-top: 1em;
+}
+button {
+    margin-top: 4px;
+    background-color: #d1c5c0;
+    color: #491705;
+    padding: 0.3em 0.6em;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 107%;
+    border-color: #8d6d62;
+}
+button:hover {
+    background-color: #baa8a1;
+}
+label.copier {
+    background-repeat: no-repeat;
+    background-position: right bottom 4px;
+    background-image: url("{{ site.baseurl }}/assets/copy-icon.png");
+    cursor: pointer;
+}
+@keyframes copiedAnimation {
+    0% {
+        background-color: initial; /* Start with the initial color */
+    }
+    50% {
+        background-color: #e4bfa8; /* At 50%, the background becomes beige */
+    }
+    100% {
+        background-color: initial; /* Return to the original color */
+    }
+}
+.copied {
+    animation: copiedAnimation 0.5s ease-in-out;
+}
+.error {
+    color: #800000;
+    font-style: italic;
+}
+input::placeholder, textarea::placeholder {
+    color: #888;          /* Change the text color */
+    font-style: italic;   /* Change the font style */
+    opacity: 0.7;        /* Change the opacity */
+}

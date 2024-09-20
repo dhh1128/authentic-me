@@ -1,0 +1,27 @@
+---
+layout: default
+title: Convert Ed25519 public key to various representations
+---
+
+<script type="module" src="util.js" defer></script>
+<script type="module" src="cvtkey.js"></script>
+<h1>{{ page.title }}</h1>
+
+<label>Ed25519 public key, any format below</label>
+<textarea id="val" rows="1" cols="80" maxlength="120"></textarea>
+<div style="display:flex">
+    <button id="converter">Convert</button>
+    <div id="parsemsg" class="resettable" style="flex:1;text-align:right"></div>
+</div>
+
+<label class="copier" for="cesr">CESR</label>
+<textarea readonly rows="1" cols="80" class="code resettable" id="cesr" placeholder="e.g., BGZ_DdmzryjQOtOdQauTm_YxggbVM7EWelk8IBxsnC-c"></textarea>
+
+<label class="copier" for="ssh">SSH key</label>
+<textarea readonly rows="1" cols="80" class="code resettable" id="ssh" placeholder="e.g., ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBmfw3Zs68o0DrTnUGrk5v2MYIG1TOxFnpZPCAcbJwvn user@host"></textarea>
+
+<label class="copier" for="peer">did:peer numalgo 0</label>
+<textarea readonly rows="1" cols="80" class="code resettable" id="peer" placeholder="e.g., did:peer:0z6Mk2j2VK2KG6Fb4DoM8cPAWg9AFSq2JXZ1Ckrse7ZubQLv2"></textarea>
+
+<label class="copier" for="key">did:key</label>
+<textarea readonly rows="1" cols="80" class="code resettable" id="key" placeholder="e.g., did:key:z6Mk2j2VK2KG6Fb4DoM8cPAWg9AFSq2JXZ1Ckrse7ZubQLv2"></textarea>
