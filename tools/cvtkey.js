@@ -2,10 +2,11 @@ import { el, reset } from './util.js';
 
 const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 const VARIANTS = {
-  'ssh': {'pat': /^\s*(ssh-[a-z0-9]+[ \t]+)?(AAAA[-_=+\/a-zA-Z0-9]+)(?:[ \t]([^ \t\r\n]+))?/gm, 'toRaw': SSHToRawBytes, 'fromRaw': rawBytesToSSH},
-  'cesr': {'pat': /^\s*([A-Z])([-_=+\/a-zA-Z0-9]{43}\s*$)?/gm, 'toRaw': CESRToRawBytes, 'fromRaw': rawBytesToCESR},
-  'peer': {'pat': /^\s*(did:peer:0z6Mk)([123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{43,44})(?:\?|$)/gm, 'toRaw': base58Decode, 'fromRaw': rawBytesToDIDPeer},
-  'key': {'pat': /^\s*(did:key:z6Mk)?([123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{43,44})/gm, 'toRaw': base58Decode, 'fromRaw': rawBytesToDIDKey}
+  'hex': {'pat': /^(\s*)([a-fA-F0-9]){64}?/gm, 'toRaw': hexToRawBytes, 'fromRaw': rawBytesToHex},
+  'SSH': {'pat': /^\s*(ssh-[a-z0-9]+[ \t]+)?(AAAA[-_=+\/a-zA-Z0-9]+)(?:[ \t]([^ \t\r\n]+))?/gm, 'toRaw': SSHToRawBytes, 'fromRaw': rawBytesToSSH},
+  'CESR': {'pat': /^\s*([A-Z])([-_=+\/a-zA-Z0-9]{43}\s*$)?/gm, 'toRaw': CESRToRawBytes, 'fromRaw': rawBytesToCESR},
+  'did:peer': {'pat': /^\s*(did:peer:0z6Mk)([123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{43,44})(?:\?|$)/gm, 'toRaw': base58Decode, 'fromRaw': rawBytesToDIDPeer},
+  'did:key': {'pat': /^\s*(did:key:z6Mk)?([123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{43,44})/gm, 'toRaw': base58Decode, 'fromRaw': rawBytesToDIDKey}
 };
 
 function reportParse(msg, isError) {
@@ -101,6 +102,18 @@ function rawBytesToSSH(rawBytes, comment="user@host") {
 
     // Return the full SSH formatted key
     return `ssh-ed25519 ${base64Key} ${comment}`;
+}
+
+function hexToRawBytes(hex) {
+  const bytes = [];
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes.push(parseInt(hex.substr(i, 2), 16));
+  }
+  return new Uint8Array(bytes);
+}
+
+function rawBytesToHex(rawBytes) {
+  return Array.from(rawBytes).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 function rawBytesToBase64Url(bytes) {
