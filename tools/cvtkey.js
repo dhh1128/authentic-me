@@ -1,10 +1,11 @@
 import { el, reset } from './util.js';
+import { Matter, MtrDex } from './cesr.js';
 
 const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 const VARIANTS = {
-  'hex': {'pat': /^(\s*)([a-fA-F0-9]){64}?/gm, 'toRaw': hexToRawBytes, 'fromRaw': rawBytesToHex},
+  'hex': {'pat': /^(\s*)([a-fA-F0-9]{64})/gm, 'toRaw': hexToRawBytes, 'fromRaw': rawBytesToHex},
   'SSH': {'pat': /^\s*(ssh-[a-z0-9]+[ \t]+)?(AAAA[-_=+\/a-zA-Z0-9]+)(?:[ \t]([^ \t\r\n]+))?/gm, 'toRaw': SSHToRawBytes, 'fromRaw': rawBytesToSSH},
-  'CESR': {'pat': /^\s*([A-Z])([-_=+\/a-zA-Z0-9]{43}\s*$)?/gm, 'toRaw': CESRToRawBytes, 'fromRaw': rawBytesToCESR},
+  'CESR': {'pat': /^(\s*)([A-Z][-_=+\/a-zA-Z0-9]{43})\s*$/gm, 'toRaw': CESRToRawBytes, 'fromRaw': rawBytesToCESR},
   'did:peer': {'pat': /^\s*(did:peer:0z6Mk)([123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{43,44})(?:\?|$)/gm, 'toRaw': base58Decode, 'fromRaw': rawBytesToDIDPeer},
   'did:key': {'pat': /^\s*(did:key:z6Mk)?([123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{43,44})/gm, 'toRaw': base58Decode, 'fromRaw': rawBytesToDIDKey}
 };
@@ -70,12 +71,9 @@ function SSHToRawBytes(base64Key) {
 }
 
 function CESRToRawBytes(cesr) {
-  // Convert from base64url to base64
-  let b64 = cesr.replace(/-/g, '+').replace(/_/g, '/');
-  // Pad if needed.
-  b64 = b64.padEnd(b64.length + (4 - b64.length % 4) % 4, '=');
-  const bstring = atob(b64);
-  return Uint8Array.from(bstring, c => c.charCodeAt(0));
+  console.log(cesr);
+  const mat = new Matter({qb64: cesr});
+  return mat.raw;
 }
 
 function rawBytesToSSH(rawBytes, comment="user@host") {
@@ -116,23 +114,9 @@ function rawBytesToHex(rawBytes) {
   return Array.from(rawBytes).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-function rawBytesToBase64Url(bytes) {
-  // Convert the byte array to a binary string
-  let bstring = "";
-  for (let i = 0; i < bytes.length; i++) {
-      bstring += String.fromCharCode(bytes[i]);
-  }
-  let b64 = btoa(bstring);
-  // Convert Base64 to Base64url by replacing '+' with '-' and '/' with '_'
-  let b64url = b64.replace(/\+/g, '-').replace(/\//g, '_');
-  // Remove padding
-  return b64url.replace(/=+$/, '');
-}
-
 function rawBytesToCESR(rawBytes) {
-  const base64String = rawBytesToBase64Url(rawBytes);
-  const base64Url = base64String.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  return 'B' + base64Url;
+  const mat = new Matter({raw: rawBytes, code: MtrDex.Ed25519N});
+  return mat.qb64;
 }
 
 // source of this and next func: https://gist.github.com/diafygi/90a3e80ca1c2793220e5/
