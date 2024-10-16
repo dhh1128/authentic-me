@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+
+import argparse
+import blake3
+import copy
+import json
+import os
+import re
+import sys
+
+from keri.core import coring
+
+PLACEHOLDER_PAT = re.compile(r"[EFGHI](?:[-_\w]{43}|#{43})|0[DEFG](?:[-_\w]{86}|#{86})")
+BYTEWISE_PAT = re.compile(rb"SAID:([EFGHI](?:[-_\w]{43}|#{43})|0[DEFG](?:[-_\w]{86}|#{86}))")
+EXTERNALIZED_PAT = re.compile(rb'XSAID:"([^"].*?)([EFGHI](?:[-_\w]{43}|#{43})|0[DEFG](?:[-_\w]{86}|#{86}))([^"]*)"')
+
+def find_best_said_field(obj, labels):
+    best = (None, None)
+    for label in labels:
+        if label in obj:
+            val = obj[label]
+            if isinstance(val, str):
+                if PLACEHOLDER_PAT.match(val):
+                    return label
+                if best[0] is None:
+                    best = (label, val)
+            elif val is None:
+                best = (label, val)
+    return best[0]
+
+def saidify_obj(obj, labels, recurse=True, require_match=False):
+    if recurse:
+        nested_dicts = [key for key, value in obj.items() if isinstance(value, dict)]
+        if nested_dicts:
+            for key in nested_dicts:
+                _, obj[key] = saidify_obj(obj[key], labels, recurse, require_match=False)
+    label = find_best_said_field(obj, labels)
+    if not label:
+        if not require_match: return None, obj
+        raise Exception(f"Can't inject SAID. No field named {' or '.join(labels)} in JSON, or field exists with wrong datatype.")
+    _, new_dict = coring.Saider.saidify(sad=obj, label=label)
+    return label, new_dict
+
+def saidify_sad(data, args):
+    """Apply standard SAID algorithm to a JSON object."""
+    try:
+        sad = json.loads(data)
+    except json.JSONDecodeError:
+        return None # this data isn't JSON
+    new_dict = copy.deepcopy(sad)
+    labels = args.label.split(',')
+    label, new_dict = saidify_obj(new_dict, labels, args.all, require_match=True)
+    saids_differ = new_dict[label] != sad[label]
+    new_data = json.dumps(new_dict, indent=2).encode()
+    return update(data, new_data, new_dict[label], args, update_file_content, just_normalize=not saids_differ)
+
+def saidify_bytewise(data, args):
+    """Apply externalized SAID algorithm. See 3.2 in https://dhh1128.github.io/papers/bes.pdf."""
+    m = BYTEWISE_PAT.search(data)
+    if not m: return None # can't use bytewise algorithm with this data
+    template = template_from_placeholder(m.group(1))
+    to_digest = data[:m.start()] + b"SAID:" + template + data[m.end():]
+    digester = blake3.blake3(to_digest)
+    del to_digest
+    matter = coring.Matter(raw=digester.digest(), code=coring.MtrDex.Blake3_256)
+    new_data = data[:m.start()] + b"SAID:" + matter.qb64b + data[m.end():]
+    return update(data, new_data, matter.qb64, args, update_file_content)
+
+def saidify_externalized(data, args):
+    """Apply externalized SAID algorithm. See 3.4 in https://dhh1128.github.io/papers/bes.pdf."""
+    m = EXTERNALIZED_PAT.search(data)
+    if not m: return None # can't use externalized algorithm with this data
+    pre_pat = re.compile("^(" + m.group(1).decode() + ").*")
+    post_pat = re.compile(".*(" + m.group(3).decode() + ")$")
+    template = template_from_placeholder(m.group(2))
+    folder, fname = os.path.split(args.file)
+    # Try to map the XSAID regex to filename 
+    pre = None
+    post = None
+    placeholder_match = PLACEHOLDER_PAT.search(fname)
+    if placeholder_match:
+        x = pre_pat.match(fname[:placeholder_match.start()])
+        if x: pre = x.group(1)
+        x = post_pat.match(fname[placeholder_match.end():])
+        if x: post = x.group(1)    
+    else:
+        x = post_pat.match(fname)
+        if x: 
+            post = x.group(1)
+            fragment = fname[:x.start(1)]
+            x = pre_pat.match(fragment)
+            if x: pre = x.group(1)
+        else:
+            pre = pre_pat.match(fname)
+            if x: pre = x.group(1)
+    # Check for problems and report intelligently.
+    err = ''
+    if pre is None:
+        err = f'Can\'t match regex prefix ("{m.group(1).decode()}")'
+    if post is None:
+        err += " or " if err else "Can't match "
+        err += f'regex suffix ("{m.group(3).decode()}")'
+    if err:
+        err += f' in filename "{fname}".'
+        raise Exception(err)
+    # We matched enough. Proceed with externalizing.
+    to_digest = data[:m.start()] + b"XSAID:" + template + data[m.end():]
+    digester = blake3.blake3(to_digest)
+    matter = coring.Matter(raw=digester.digest(), code=coring.MtrDex.Blake3_256)
+    new_fname = os.path.join(folder, pre + matter.qb64 + post)
+    return update(args.file, new_fname, matter.qb64, args, update_file_name)
+
+def template_from_placeholder(placeholder):
+    """Given a placeholder that is either a real SAID or a template, return a template (what should be inserted to saidify)."""
+    prefix = placeholder[:1] if len(placeholder) == 44 else placeholder[:2]
+    template = prefix + b'#' * (len(placeholder) - len(prefix))
+    return template
+
+def update_file_content(fname, new_bytes, said):
+    """Apply SAID by writing new_bytes to fname, backing up the original file. On failure, don't damage anything."""
+    temp_fname = fname + ".new"
+    with open(temp_fname, 'wb') as f:
+        f.write(new_bytes)
+    backup = temp_fname + '.bak'
+    if os.path.isfile(backup):
+        os.remove(backup)
+    os.rename(fname, backup)
+    os.rename(temp_fname, fname)
+    print(f"File {fname} updated with SAID {said}.")
+
+def update_file_name(fname, new_fname, _):
+    """Apply SAID by changing filename."""
+    os.rename(fname, new_fname)
+    print(f"File {fname} renamed to {new_fname}.")
+
+def update(data, new_data, said, args, change_func, just_normalize=False):
+    """If data and new_data differ, apply the change_func to update the file."""
+    change_needed = (data != new_data)
+    if change_needed:
+        if args.check:
+            extra = " File already has it, but the JSON isn't normalized." if just_normalize else ""
+            print(f"Change needed. Correct SAID for {args.file} is {said}.{extra}")
+            return True
+    else:
+        print(f"No change needed. Correct SAID {said} already present.")
+        return False
+    change_func(args.file, new_data, said)
+    return True
+
+def main():
+    parser = argparse.ArgumentParser(description=
+        "Saidify the specified file, either using the standard CESR algorithm, or using bytewise/externalized SAIDs (https://dhh1128.github.io/papers/bes.pdf).")
+
+    parser.add_argument('file', help='path to saidify')
+    parser.add_argument('--label', '-l', default="d", help='For JSON, label of field in which to inject the computed SAID. Can be comma-separated list.')
+    parser.add_argument('--all', '-a', action='store_true', help='For JSON, saidify each subobject, then outer obj.')
+    parser.add_argument('--check', '-c', action='store_true', help='Just check whether a change is needed (exit status 0=no, 1=yes).')
+    args = parser.parse_args()
+
+    with open(args.file, 'rb') as f:
+        data = f.read()
+
+    try:
+        result = saidify_sad(data, args)
+        if result is None:
+            result = saidify_bytewise(data, args)
+            if result is None:
+                result = saidify_externalized(data, args)
+                if result is None:
+                    raise Exception(f"File {args.file} doesn't seem ready for saidification.")
+        sys.exit(1 if result else 0)
+    except Exception as e:
+        import traceback
+        tb = traceback.extract_tb(sys.exc_info()[2])[-1]
+        fname = os.path.basename(tb.filename)
+        print(f"Error from {fname} line {tb.lineno}: {e}")
+        sys.exit(-1)
+
+if __name__ == "__main__":
+    main()
