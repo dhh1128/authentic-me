@@ -10,66 +10,59 @@ import sys
 
 from keri.core import coring
 
+VERBOSE = False
 PLACEHOLDER_PAT = re.compile(r"[EFGHI](?:[-_\w]{43}|#{43})|0[DEFG](?:[-_\w]{86}|#{86})")
-BYTEWISE_PAT = re.compile(rb"SAID:([EFGHI](?:[-_\w]{43}|#{43})|0[DEFG](?:[-_\w]{86}|#{86}))")
-EXTERNALIZED_PAT = re.compile(rb'XSAID:"([^"].*?)([EFGHI](?:[-_\w]{43}|#{43})|0[DEFG](?:[-_\w]{86}|#{86}))([^"]*)"')
-
-def find_best_said_field(obj, labels):
-    best = (None, None)
-    for label in labels:
-        if label in obj:
-            val = obj[label]
-            if isinstance(val, str):
-                if PLACEHOLDER_PAT.match(val):
-                    return label
-                if best[0] is None:
-                    best = (label, val)
-            elif val is None:
-                best = (label, val)
-    return best[0]
-
-def saidify_obj(obj, labels, recurse=True, require_match=False):
-    if recurse:
-        nested_dicts = [key for key, value in obj.items() if isinstance(value, dict)]
-        if nested_dicts:
-            for key in nested_dicts:
-                _, obj[key] = saidify_obj(obj[key], labels, recurse, require_match=False)
-    label = find_best_said_field(obj, labels)
-    if not label:
-        if not require_match: return None, obj
-        raise Exception(f"Can't inject SAID. No field named {' or '.join(labels)} in JSON, or field exists with wrong datatype.")
-    _, new_dict = coring.Saider.saidify(sad=obj, label=label)
-    return label, new_dict
+INSERTION_POINT_PAT = re.compile(rb"SAID:([EFGHI](?:[-_\w]{43}|#{43})|0[DEFG](?:[-_\w]{86}|#{86}))")
+EXSERTION_INSTRUCTION_PAT = re.compile(rb'XSAID:"([^"]*?)([EFGHI](?:[-_\w]{43}|#{43})|0[DEFG](?:[-_\w]{86}|#{86}))([^"]*)"')
 
 def saidify_sad(data, args):
-    """Apply standard SAID algorithm to a JSON object."""
+    """Apply standard SAID algorithm to a JSON object, possibly with recursion."""
     try:
         sad = json.loads(data)
+        if VERBOSE: print(f"Detected JSON.")
     except json.JSONDecodeError:
+        if VERBOSE: print(f"File is not valid JSON.")
         return None # this data isn't JSON
     new_dict = copy.deepcopy(sad)
     labels = args.label.split(',')
+    if VERBOSE: print(f"Depth-first recursion into subobjects={args.all}. Add or omit --all on cmdline to change.")
     label, new_dict = saidify_obj(new_dict, labels, args.all, require_match=True)
     saids_differ = new_dict[label] != sad[label]
     new_data = json.dumps(new_dict, indent=2).encode()
     return update(data, new_data, new_dict[label], args, update_file_content, just_normalize=not saids_differ)
 
 def saidify_bytewise(data, args):
-    """Apply externalized SAID algorithm. See 3.2 in https://dhh1128.github.io/papers/bes.pdf."""
-    m = BYTEWISE_PAT.search(data)
-    if not m: return None # can't use bytewise algorithm with this data
-    template = template_from_placeholder(m.group(1))
-    to_digest = data[:m.start()] + b"SAID:" + template + data[m.end():]
+    """Apply externalized SAID algorithm. See 3.2 and 3.5 in https://dhh1128.github.io/papers/bes.pdf."""
+    m = INSERTION_POINT_PAT.search(data)
+    if not m:
+        if VERBOSE: print(f"No insertion point found.") 
+        return None, None # can't use bytewise algorithm with this data
+    else:
+        if VERBOSE: print(f"Found insertion point {m.group(0).decode()} at offset {m.start()}.")
+    placeholder = m.group(1)
+    template = template_from_placeholder(placeholder)
+    m_ex = EXSERTION_INSTRUCTION_PAT.search(data)
+    if m_ex:
+        if m_ex.group(2) != placeholder:
+            raise Exception(f"Bytewise placeholder {placeholder.decode()} doesn't match externalized placeholder {m_ex.group(2).decode()}.")
+        else:
+            if VERBOSE: print(f"Found matching bytewise and externalized placeholders {placeholder.decode()}.")
+    # Update all the echoes with template
+    to_digest = data.replace(placeholder, template)
     digester = blake3.blake3(to_digest)
     del to_digest
     matter = coring.Matter(raw=digester.digest(), code=coring.MtrDex.Blake3_256)
-    new_data = data[:m.start()] + b"SAID:" + matter.qb64b + data[m.end():]
-    return update(data, new_data, matter.qb64, args, update_file_content)
+    new_data = data.replace(placeholder, matter.qb64b)
+    return update(data, new_data, matter.qb64, args, update_file_content), matter.qb64 if m_ex else None
 
-def saidify_externalized(data, args):
-    """Apply externalized SAID algorithm. See 3.4 in https://dhh1128.github.io/papers/bes.pdf."""
-    m = EXTERNALIZED_PAT.search(data)
-    if not m: return None # can't use externalized algorithm with this data
+def saidify_externalized(data, args, said_value=None):
+    """Apply externalized SAID algorithm. See 3.4 and 3.5 in https://dhh1128.github.io/papers/bes.pdf."""
+    m = EXSERTION_INSTRUCTION_PAT.search(data)
+    if not m: 
+        if VERBOSE: print(f"No exsertion instruction found.") 
+        return None # can't use externalized algorithm with this data
+    else:
+        if VERBOSE: print(f"Found exsertion instruction {m.group(0).decode()} at offset {m.start()}.")
     pre_pat = re.compile("^(" + m.group(1).decode() + ").*")
     post_pat = re.compile(".*(" + m.group(3).decode() + ")$")
     template = template_from_placeholder(m.group(2))
@@ -103,12 +96,45 @@ def saidify_externalized(data, args):
     if err:
         err += f' in filename "{fname}".'
         raise Exception(err)
+    if VERBOSE: print(f'Split filename pattern into "{pre}" + SAID + "{post}".')
     # We matched enough. Proceed with externalizing.
-    to_digest = data[:m.start()] + b"XSAID:" + template + data[m.end():]
-    digester = blake3.blake3(to_digest)
-    matter = coring.Matter(raw=digester.digest(), code=coring.MtrDex.Blake3_256)
-    new_fname = os.path.join(folder, pre + matter.qb64 + post)
-    return update(args.file, new_fname, matter.qb64, args, update_file_name)
+    if said_value is None:
+        to_digest = data[:m.start()] + b"XSAID:" + template + data[m.end():]
+        digester = blake3.blake3(to_digest)
+        matter = coring.Matter(raw=digester.digest(), code=coring.MtrDex.Blake3_256)
+        said_value = matter.qb64
+    else:
+        if VERBOSE: print(f"Using SAID from bytewise algorithm.")
+    new_fname = os.path.join(folder, pre + said_value + post)
+    return update(args.file, new_fname, said_value, args, update_file_name)
+
+def find_best_said_field(obj, labels):
+    best = (None, None)
+    for label in labels:
+        if label in obj:
+            val = obj[label]
+            if isinstance(val, str):
+                if PLACEHOLDER_PAT.match(val):
+                    return label
+                if best[0] is None:
+                    best = (label, val)
+            elif val is None:
+                best = (label, val)
+    return best[0]
+
+def saidify_obj(obj, labels, recurse=True, require_match=False):
+    if recurse:
+        nested_dicts = [key for key, value in obj.items() if isinstance(value, dict)]
+        if nested_dicts:
+            for key in nested_dicts:
+                _, obj[key] = saidify_obj(obj[key], labels, recurse, require_match=False)
+    label = find_best_said_field(obj, labels)
+    if not label:
+        if not require_match: return None, obj
+        raise Exception(f"Can't inject SAID. No field named {' or '.join(labels)} in JSON, or field exists with wrong datatype.")
+    if VERBOSE: print(f"Updating {label} field.")
+    _, new_dict = coring.Saider.saidify(sad=obj, label=label)
+    return label, new_dict
 
 def template_from_placeholder(placeholder):
     """Given a placeholder that is either a real SAID or a template, return a template (what should be inserted to saidify)."""
@@ -155,7 +181,10 @@ def main():
     parser.add_argument('--label', '-l', default="d", help='For JSON, label of field in which to inject the computed SAID. Can be comma-separated list.')
     parser.add_argument('--all', '-a', action='store_true', help='For JSON, saidify each subobject, then outer obj.')
     parser.add_argument('--check', '-c', action='store_true', help='Just check whether a change is needed (exit status 0=no, 1=yes).')
+    parser.add_argument('--verbose', '-v', action='store_true', help='Emit verbose messages for debugging.')
     args = parser.parse_args()
+    global VERBOSE
+    VERBOSE = args.verbose
 
     with open(args.file, 'rb') as f:
         data = f.read()
@@ -163,9 +192,10 @@ def main():
     try:
         result = saidify_sad(data, args)
         if result is None:
-            result = saidify_bytewise(data, args)
-            if result is None:
-                result = saidify_externalized(data, args)
+            result, external_said = saidify_bytewise(data, args)
+            if result is None or external_said:
+                exresult = saidify_externalized(data, args, external_said)
+                if (result is None and exresult is not None) or (result == 0 and exresult == 1): result = exresult
                 if result is None:
                     raise Exception(f"File {args.file} doesn't seem ready for saidification.")
         sys.exit(1 if result else 0)
