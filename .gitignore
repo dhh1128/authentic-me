@@ -2,6 +2,11 @@ pytest.ini
 *.log
 .venv
 
+# ignore node packages
+node_modules
+package-lock.json
+package.json
+
 # ignore local runs of jekyll
 _site
 .jekyll-cache

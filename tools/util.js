@@ -4,7 +4,9 @@ export function el(id) {
 
 export function getTextValue(element) {
     if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
-        return element.value;
+        var v = element.value || element.placeholder;
+        if (v.startsWith('e.g., ')) { v = v.substring(6); }
+        return v;
     } else {
         return element.innerText;
     }
@@ -22,6 +24,16 @@ export function reset() {
             }
         }
     });
+}
+
+export function reportParse(msg, isError) {
+    const parseMsgElement = el('parsemsg');
+    if (isError) {
+        parseMsgElement.classList.add('error');
+    } else {
+        parseMsgElement.classList.remove('error');
+    }
+    parseMsgElement.innerText = msg;
 }
 
 // Add event listener for items that allow text input. 

@@ -1,12 +1,17 @@
 # What are my authentic artifacts and intentions?
 
-This is the source of truth to explain how I, Daniel Hardman, prove myself in digital interactions. *If you encounter something that purports to come from me, but that doesn't harmonize with what's here, it is likely fraudulent.*
+This is my curated and permanent answer to the question: *How do I, Daniel Hardman, provide basic proof of my self's digital actions?*
+
+I'm not aiming to define all aspects of my digital identity here &mdash; only its public foundation or root of trust. (I also have a private root of trust, and my public root derives from my private root. But that's a whole 'nother story, not for here.)
+
+I might create all kinds of content and perform all kinds of actions, in lots of different places, with techniques or tools that come and go, atop that foundation. As I do, I'll endorse things to link them back this foundation. If you can prove a link to me using the rules I specify here, I claim (and cannot repudiate) the thing in question. For good or ill, this binds them to my long-term reputation as a human being. Otherwise, if authenticity matters, you should assume the thing is either private or fraudulent &mdash; or you can [contact me securely](contact-me.md) to inquire about its authenticity.
 
 ## More info
 
+* [Why bother?](why-bother.md)
 * [Why trust this source?](why-trust.md)
 * [Principles](principles.md)
-* [Tech](tech.md)
+* [Tech I use](tech.md)
 * [Identifiers](identifiers.md)
 * [Root of trust](root.md)
 * [Guardianship](guardianship.md)

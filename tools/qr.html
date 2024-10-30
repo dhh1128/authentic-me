@@ -1,0 +1,52 @@
+---
+layout: default
+title: Convert cryptographic material to a QR code
+---
+
+<h1>{{ page.title }}</h1>
+
+<label>Cryptographic material in any string format</label>
+<textarea id="val" rows="1" cols="80" maxlength="120"></textarea>
+<div style="display:flex">
+    <button id="converter">Convert</button>
+    <div id="parsemsg" class="resettable" style="flex:1;text-align:right"></div>
+</div>
+
+<canvas id="qrcode" width="300" height="300" style="border: 1px dotted rgb(200, 200, 200); margin-top: 1em;"></canvas>
+
+<script src="qrcode.min.js"></script>
+<script type="module">
+import { el, reportParse } from './util.js';
+import { describeCesr } from './cesr.js';
+
+function resetQR() {
+    const canvas = el("qrcode");
+    const context = canvas.getContext("2d");
+    context.clearRect(0, 0, canvas.width, canvas.height);
+}
+document.querySelector('#converter').addEventListener('click', makeQR);
+const val = el('val');
+val.addEventListener('keydown', function(event) {
+  if (event.key === 'Enter') {
+      event.preventDefault();
+      makeQR();
+  }
+});
+val.addEventListener('input', resetQR);
+
+function makeQR() {
+    const qr = el("qrcode");
+    const val = el("val").value.trim();
+    cesrPrimitive = describeCesr(val);
+    if (cesrPrimitive != null) {
+        reportParse("CESR " + cesrPrimitive);
+    } else if (/[a-fA-F0-9]{64}/.exec(val)) {
+        reportParse("Hex detected; unsure of type");
+    } else if (/did:/.exec(val) || /(ssh-[a-z0-9]+[ \t]+)?AAAA/.exec(val)) {
+        // format is explicit in the text itself; no need to explain
+    } else {
+        reportParse("arbitrary text", true);
+    }
+    QRCode.toCanvas(qr, val, { width: qr.width, errorCorrectionLevel: 'H' });
+}
+</script>

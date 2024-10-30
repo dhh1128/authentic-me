@@ -4,7 +4,7 @@ title: Convert Ed25519 public key to various representations
 ---
 
 <script type="module" src="util.js" defer></script>
-<script type="module" src="cvtkey.js"></script>
+<script type="module" src="cvt.js"></script>
 <h1>{{ page.title }}</h1>
 <p style="font-style: italic; font-weight: 100;">(I thought about adding a button on this page to generate a new Ed25519 keypair. However, I discarded the idea. It would not be safe, because then this page would know your private key. To get a new keypair, <a href="https://www.unixtutorial.org/how-to-generate-ed25519-ssh-key/">run <code>ssh-keygen -t ed25519</code> in a terminal</a>. Then paste the public key value here.)</p>
 
@@ -14,6 +14,8 @@ title: Convert Ed25519 public key to various representations
     <button id="converter">Convert</button>
     <div id="parsemsg" class="resettable" style="flex:1;text-align:right"></div>
 </div>
+
+<p style="padding-top:1em">(You can also <a href="qr.html">convert</a> any of these strings to a QR code</a>.)</p>
 
 <label class="copier" for="hex">hex</label>
 <textarea readonly rows="1" cols="80" class="code resettable" id="hex" placeholder="e.g., 199fc3766cebca340eb4e7506ae4e6fd8c6081b54cec459e964f08071b270be7"></textarea>
@@ -27,5 +29,5 @@ title: Convert Ed25519 public key to various representations
 <label class="copier" for="did:peer">did:peer numalgo 0</label>
 <textarea readonly rows="1" cols="80" class="code resettable" id="did:peer" placeholder="e.g., did:peer:0z6Mk2j2VK2KG6Fb4DoM8cPAWg9AFSq2JXZ1Ckrse7ZubQLv2"></textarea>
 
-<label class="copier" for="did:key">did:key</label>
+<label class="copier" for="did:key">did:key (prefix + multibase(base58btc, multicodec(keytype, bytes))</label>
 <textarea readonly rows="1" cols="80" class="code resettable" id="did:key" placeholder="e.g., did:key:z6Mk2j2VK2KG6Fb4DoM8cPAWg9AFSq2JXZ1Ckrse7ZubQLv2"></textarea>

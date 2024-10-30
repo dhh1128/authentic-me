@@ -1,4 +1,4 @@
-import { el, reset } from './util.js';
+import { el, reset, reportParse } from './util.js';
 import { Matter, MtrDex } from './cesr.js';
 
 const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
@@ -10,15 +10,6 @@ const VARIANTS = {
   'did:key': {'pat': /^\s*(did:key:z6Mk)?([123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{43,44})/gm, 'toRaw': base58Decode, 'fromRaw': rawBytesToDIDKey}
 };
 
-function reportParse(msg, isError) {
-  const parseMsgElement = el('parsemsg');
-  if (isError) {
-    parseMsgElement.classList.add('error');
-  } else {
-    parseMsgElement.classList.remove('error');
-  }
-  parseMsgElement.innerText = msg;
-}
 
 function cvtkey() {
   const val = el('val').value;
@@ -102,7 +93,7 @@ function rawBytesToSSH(rawBytes, comment="user@host") {
     return `ssh-ed25519 ${base64Key} ${comment}`;
 }
 
-function hexToRawBytes(hex) {
+export function hexToRawBytes(hex) {
   const bytes = [];
   for (let i = 0; i < hex.length; i += 2) {
     bytes.push(parseInt(hex.substr(i, 2), 16));
@@ -110,7 +101,7 @@ function hexToRawBytes(hex) {
   return new Uint8Array(bytes);
 }
 
-function rawBytesToHex(rawBytes) {
+export function rawBytesToHex(rawBytes) {
   return Array.from(rawBytes).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 

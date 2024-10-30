@@ -4,7 +4,7 @@ Identifiers that I reference here will typically have certain features.
 
 ## Canonical form
 
-In general, the canonical form of my identifiers will follow [KERI](https://trustoverip.github.io/tswg-keri-specification/)'s conventions: they will be [CESR](https://trustoverip.github.io/tswg-cesr-specification/)-encoded strings with the same semantics that KERI expects. You can go read the CESR spec, but basically, this means a raw byte stream of some kind is encoded using URL-safe base64 (see [section 5 of RFC 4648](https://www.rfc-editor.org/rfc/rfc4648#section-5)), and prefixed with a single alpha that describes the type and quantity of the bytes. For example, an Ed25519 public key is 32 bytes. Encoding those bytes as URL-safe base64 takes 43 bytes. The CESR prefix for an Ed25519 public key used as an identifier is `B`. Thus, if an Ed25519 public key is encoded in CESR, it becomes a 44-byte string beginning with `B` and followed by 43 bytes from the URL-safe base64 alphabet. You can convert it back to raw bytes and from there into other formats, as needed. Details:
+In general, the canonical form of my identifiers will follow [KERI](https://trustoverip.github.io/tswg-keri-specification/)'s conventions: they will be [CESR](https://trustoverip.github.io/tswg-cesr-specification/)-encoded strings with the same semantics that KERI expects. You can go read the CESR spec, but basically, this means a raw byte stream of some kind is left-padded to be an even multiple of 24 bytes and then encoded using URL-safe base64 (see [section 5 of RFC 4648](https://www.rfc-editor.org/rfc/rfc4648#section-5)), and prefixed with a single alpha that describes the type and quantity of the bytes. For example, an Ed25519 public key is 32 bytes. Encoding those bytes as URL-safe base64 takes 43 bytes. The CESR prefix for an Ed25519 public key used as an identifier is `B`. Thus, if an Ed25519 public key is encoded in CESR, it becomes a 44-byte string beginning with `B` and followed by 43 bytes from the URL-safe base64 alphabet. You can convert it back to raw bytes and from there into other formats, as needed. Details:
 
 prefix | meaning | full identifier
 --- | --- | ---
@@ -20,7 +20,7 @@ Except for UUIDs, identifiers will be [resolvable to public keys](resolution.md)
 
 ## Storage
 
-Each important identifiers that I create will have a dedicated folder, here on the site. The folder will have the same name as the identifier's canonical form. It will contain an index file describing the identifier, as well as other artifacts.
+Each important identifier that I create will have a dedicated folder, here on the site. The folder will have the same name as the identifier's canonical form. It will contain an index file describing the identifier, as well as other artifacts.
 
 ## Short form
 

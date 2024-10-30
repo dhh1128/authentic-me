@@ -580,3 +580,49 @@ Matter.Hards = new Map([
     ['8', 4],
     ['9', 4],
 ]);
+
+export function describeCesr(txt) {
+    if (/[A-J][-_=+\/a-zA-Z0-9]{43}/.exec(val)) {
+        const mappings = {
+            A: "seed of Ed25519 private key",
+            B: "Ed25519 public key, non-transferrable",
+            C: "X25519 public encryption key",
+            D: "Ed25519 public key",
+            E: "Blake3-256 digest",
+            F: "Blake2b-256 digest",
+            G: "Blake2s-256 digest",
+            H: "SHA3-256 digest",
+            I: "SHA2-256 digest",
+            J: "seed of ECDSA secp256k1 private key"
+        };
+        const code = val.charAt(0);
+        if (mappings.hasOwnProperty(code)) {
+            return mappings[code];
+        }
+        reportParse("CESR " + which);
+    } else if (/0[A-G][-_=+\/a-zA-Z0-9]{86}/.exec(val)) {
+        const code = val.charAt(1);
+        const mappings = {
+            A: "random salt, seed, nonce, private key, or sequence number of length 128 bits",
+            B: "Ed25519 signature",
+            C: "ECDSA secp256k1 signature",
+            D: "Blake3-512 digest",
+            E: "Blake2b-512 digest",
+            F: "SHA3-512 digest",
+            G: "SHA2-512 digest"
+        };
+        if (mappings.hasOwnProperty(code)) {
+            return mappings[code];
+        }
+    }
+    return null;
+}
+
+
+0A	Random salt, seed, nonce, private key, or sequence number of length 128 bits	2		24
+0B	Ed25519 signature	2		88
+0C	ECDSA secp256k1 signature	2		88
+0D	Blake3-512 Digest	2		88
+0E	Blake2b-512 Digest	2		88
+0F	SHA3-512 Digest	2		88
+0G	SHA2-512 Digest	2		88

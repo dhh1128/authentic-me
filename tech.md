@@ -1,11 +1,13 @@
-## Tech
-Generally, my methods reflect learnings from [KERI](https://trustoverip.github.io/tswg-keri-specification/). As a methodology for proof of authenticity, it is awesome. I will also apply techniques from the [Trust Spanning Protocol](https://trustoverip.github.io/tswg-tsp-specification/), [DIDComm](https://identity.foundation/didcomm-messaging/spec/), [Hyperledger Aries](https://www.lfdecentralizedtrust.org/projects/aries) and the W3C [Decentralized Identifiers](https://www.w3.org/TR/did-core/) and [Verifiable Credentials](https://www.w3.org/TR/vc-data-model/) specs. All of these are important technologies, built by very smart people that I know well. I freely credit the associated inventors, disclaim any cleverness on my part, and accept any criticisms if I apply their ideas imperfectly.
+## Tech I use
 
-However, I am going base my trust on the *principles* in these technologies, rather than on *implementations* or even *specifications* of them. That's because:
+I answer this question differently, depending on whether we're talking about tech that I use to *establish a long-term foundation*, or tech I use to *build atop that foundation*. 
 
-1. My personal identity and its associated reputation should be facilitated by a particular technology, not captive to it.
-1. I am primarily trying to prove things to humans here, not to automated systems.
-1. I expect implementations and specifications to evolve, but I need the mechanisms that I use to be stable for decades.
-1. I want anyone who interacts with me to be able to prove things to their satisfaction, regardless of tech that they may or may not understand or use.
+### Foundation
+Humans use tech, but we pre-exist and out-exist and trans-exist most of it. I grew up before VCRs, and I'm still around long after their irrelevance... And we all make different tech choices, often with good reasons. And our choices evolve over time. Since my goal here is to let humans rather than machines verify a connection to my personal root of trust, and I want extreme stability across decades, basing a foundation too strongly on a particular tech stack seems unwise. I'm no more eager to be captive to tech than I am to be captive to organizational or societal forces.
 
-I will provide some convenience tools on this website to create and prove evidence. However, anything I create and anything you need to prove can be processed with simple, stable, commodity tools that you find on your own. I'll suggest them where appropriate.
+Managing and verifying the foundation of my identity should therefore require nothing hard or exotic or controversial or nonstandard. I'll use tools that are mature and likely to remain stable (enough) for decades: ssh keys, Ed25519, and Blake3. I will serialize things as hex, with a short prefix to make the hex self-describing. I might publish a few convenience scripts in python or javascript. That's about it.
+
+I don't deserve credit for anything clever about my foundation. My methods and principles borrow liberally from the work of many smart people. I am particularly indebted to [KERI](https://trustoverip.github.io/tswg-keri-specification/), [CESR](https://trustoverip.github.io/tswg-keri-specification/) and [ACDCs](https://trustoverip.github.io/tswg-acdc-specification/). As a combined methodology for high-stakes proof of authenticity, I admire that stack's many excellent qualities. I am also using techniques from the [Trust Spanning Protocol](https://trustoverip.github.io/tswg-tsp-specification/), [DIDComm](https://identity.foundation/didcomm-messaging/spec/), [Hyperledger Aries](https://www.lfdecentralizedtrust.org/projects/aries) and the W3C [Decentralized Identifiers](https://www.w3.org/TR/did-core/) and [Verifiable Credentials](https://www.w3.org/TR/vc-data-model/) specs. All of these are important technologies, built by people that I know well, that I hope will shape our digital future. I freely credit the associated inventors, and accept any criticisms if I apply their ideas imperfectly.
+
+### Above the foundation
+If it's above the foundation, I'm bleeding edge. I can afford to be, because of the stability of the foundation. Using my root of trust, I can endorse experiments to attach them to my long-term reputation, and then revoke my endorsements as needed.
